@@ -105,4 +105,8 @@
 			</plugin>
 		</plugins>
 	</build>
+	<scm>
+		<connection>scm:git:git@github.com:wfeely/hw4-wfeely.git</connection>
+		<developerConnection>scm:git:git@github.com:wfeely/hw4-wfeely.git</developerConnection>
+	</scm>
 </project>
