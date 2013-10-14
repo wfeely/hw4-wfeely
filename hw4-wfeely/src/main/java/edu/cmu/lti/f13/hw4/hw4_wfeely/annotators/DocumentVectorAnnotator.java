@@ -16,7 +16,6 @@ import org.apache.uima.jcas.tcas.Annotation;
 import edu.cmu.lti.f13.hw4.hw4_wfeely.typesystems.Document;
 import edu.cmu.lti.f13.hw4.hw4_wfeely.typesystems.Token;
 
-
 public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
   @Override
@@ -52,6 +51,10 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
         // no more elements to process
         break;
       }
+      /*
+      System.out.println("Old tokenList contains: " + listTok.getText() + ","
+              + listTok.getFrequency());
+      */
       aList.add(listTok);
       i++;
     }
@@ -61,6 +64,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
       Token docTok = new Token(jcas);
       docTok.setText(tokenText);
       docTok.setFrequency(1);
+      //System.out.println("Got a new token: " + docTok.getText());
       // loop through tokens in aList
       boolean match = false;
       for (Token aListTok : aList) {
@@ -69,21 +73,48 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
           // match; increment frequency of this type and set match to true
           aListTok.setFrequency(aListTok.getFrequency() + 1);
           match = true;
+          /*System.out.println("Match: " + aListTok.getText() + ", updated freq: "
+                  + aListTok.getFrequency());
+                  */
         }
       }
       // no match; add this new type to aList
-      if (!match)
+      if (!match) {
+        //System.out.println("No match, adding new token: " + docTok.getText());
         aList.add(docTok);
+      }
     }
+    // DEBUG: Print all elements in aList
+    /*
+    for (Token t : aList) {
+      System.out.println("Arraylist contains: " + t.getText() + "," + t.getFrequency());
+    }
+    */
     // reset FSList list, by copying arrayList aList back into it
-    FSList outList = new FSList(jcas);
-    ((NonEmptyFSList) outList).setHead(aList.get(0));
-    ((NonEmptyFSList) outList).setTail(null);
-    for (int j=1; j < aList.size(); j++) {
-      Token currentToken = aList.get(j);
-      outList = ((NonEmptyFSList) outList).getTail();
-      ((NonEmptyFSList) outList).setHead(currentToken);
+    NonEmptyFSList outList = new NonEmptyFSList(jcas);
+    outList.setHead(aList.get(aList.size() - 1));
+    outList.setTail(null);
+    for (int j = aList.size() - 2; j >= 0; j--) {
+      NonEmptyFSList tmpList = new NonEmptyFSList(jcas);
+      tmpList.setTail(outList);
+      tmpList.setHead(aList.get(j));
+      outList = tmpList;
     }
-    doc.setTokenList(outList);
+    doc.setTokenList((FSList) outList);
+    // DEBUG: print all elements in tokenList
+    /*
+    i = 0;
+    Token tok = null;
+    while (true) {
+      try {
+        tok = (Token) doc.getTokenList().getNthElement(i);
+      } catch (Exception e) {
+        // no more elements to process
+        break;
+      }
+      System.out.println("FSList contains: " + tok.getText() + "," + tok.getFrequency());
+      i++;
+    }
+    */
   }
 }
