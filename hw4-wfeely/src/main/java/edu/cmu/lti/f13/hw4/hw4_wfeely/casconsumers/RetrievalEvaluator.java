@@ -216,12 +216,12 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
   private class QuerySet {
 
     /** Query ID for this query set **/
-    int qID;
+    public int qID;
 
     /** Set of documents belonging to this query set **/
-    ArrayList<Doc> docSet;
+    public ArrayList<Doc> docSet;
 
     /** Query document for this query set **/
-    Doc query;
+    public Doc query;
   }
 }
