@@ -199,7 +199,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
           Map<String, Integer> docVector) {
     double cosine_similarity = 0.0;
 
-    // TODO :: compute cosine similarity between two sentences
+    // compute cosine similarity between two sentences
 
     // calculate tf vectors for query and document
     HashMap<String, Double> tfQuery = new HashMap<String, Double>();
