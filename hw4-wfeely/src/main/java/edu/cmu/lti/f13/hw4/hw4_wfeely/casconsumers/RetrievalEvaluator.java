@@ -171,10 +171,9 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     // compute the rank of retrieved sentences
     for (QuerySet myQuerySet : querySets) {
       myQuerySet.ranking = new ArrayList<Doc>();
-      int len = myQuerySet.docSet.size();
-      double bestScore = 0.0;
-      int bestIndex = 0;
-      for (int i = 0; i < len; i++) {
+      while (myQuerySet.docSet.size() > 0) {
+        double bestScore = 0.0;
+        int bestIndex = 0;
         for (int j = 0; j < myQuerySet.docSet.size(); j++) {
           double docScore = myQuerySet.docSet.get(j).cosineSimilarity;
           if (docScore > bestScore) {
