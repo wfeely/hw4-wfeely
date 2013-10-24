@@ -177,7 +177,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     double cosine_similarity = 0.0;
 
     // TODO :: compute cosine similarity between two sentences
-
+    
     return cosine_similarity;
   }
 
@@ -197,9 +197,9 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
         // find correct answer
         if (myDoc.relevanceValue == 1) {
           // sum up mrr
-          metric_mrr += (1.0 / (double) (i+1));
+          metric_mrr += (1.0 / (double) (i + 1));
           // print score and ranking of correct answer to console
-          System.out.println("Score: " + myDoc.cosineSimilarity + " rank=" + (i+1) + " rel="
+          System.out.println("Score: " + myDoc.cosineSimilarity + " rank=" + (i + 1) + " rel="
                   + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " + myDoc.text);
           break;
         }
