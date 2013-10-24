@@ -28,11 +28,14 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
   /** global vocabulary **/
   public HashMap<String, Integer> vocab;
 
-  /** document array **/
+  /** document list **/
   public ArrayList<Doc> docs;
 
   /** max query ID **/
   public int maxQID;
+
+  /** query sets list **/
+  public ArrayList<QuerySet> querySets;
 
   public void initialize() throws ResourceInitializationException {
 
@@ -45,6 +48,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     docs = new ArrayList<Doc>();
 
     maxQID = 0;
+
+    querySets = new ArrayList<QuerySet>();
   }
 
   /**
@@ -85,9 +90,6 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       qIdList.add(doc.getQueryID());
       relList.add(doc.getRelevanceValue());
 
-      // DEBUG: Print document
-      // System.out.println(myDoc.text);
-
       // update global vocabulary with tokens from this document
       for (Token tok : tokenList) {
         String word = tok.getText();
@@ -100,21 +102,14 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
         // put each token into document word frequency vector
         myDoc.f.put(word, freq);
       }
-      // DEBUG: print all elements in vocab
-      /*
-       * if (vocab != null) { for (String word : vocab.keySet()) { System.out.println(word + "," +
-       * vocab.get(word)); } }
-       */
 
       // add myDoc to documents array
       docs.add(myDoc);
-
     }
-
   }
 
   /**
-   * TODO 1. Compute Cosine Similarity and rank the retrieved sentences 2. Compute the MRR metric
+   * 1. Compute Cosine Similarity and rank the retrieved sentences 2. Compute the MRR metric
    */
   @Override
   public void collectionProcessComplete(ProcessTrace arg0) throws ResourceProcessException,
@@ -123,8 +118,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     super.collectionProcessComplete(arg0);
 
     // set up query, result sets
-    ArrayList<QuerySet> querySets = new ArrayList<QuerySet>();
-    for (int i = 0; i < maxQID; i++) {
+    for (int i = 1; i <= maxQID; i++) {
       // make a new query set
       QuerySet myQuerySet = new QuerySet();
       myQuerySet.qID = i;
@@ -145,16 +139,31 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       querySets.add(myQuerySet);
     }
 
-    // TODO :: compute the cosine similarity measure
+    // compute the cosine similarity measure
+    for (QuerySet myQuerySet : querySets)
+      for (Doc result : myQuerySet.docSet)
+        result.cosineSimilarity = computeCosineSimilarity(myQuerySet.query.f, result.f);
+
+    // compute the rank of retrieved sentences
     for (QuerySet myQuerySet : querySets) {
-      ArrayList<Double> cosSim = new ArrayList<Double>();
-      for (Doc myDoc : myQuerySet.docSet) {
-        cosSim.add(computeCosineSimilarity(myQuerySet.query.f, myDoc.f));
+      myQuerySet.ranking = new ArrayList<Doc>();
+      int len = myQuerySet.docSet.size();
+      double bestScore = 0.0;
+      int bestIndex = 0;
+      for (int i = 0; i < len; i++) {
+        for (int j = 0; j < myQuerySet.docSet.size(); j++) {
+          double docScore = myQuerySet.docSet.get(j).cosineSimilarity;
+          if (docScore > bestScore) {
+            bestScore = docScore;
+            bestIndex = j;
+          }
+        }
+        myQuerySet.ranking.add(myQuerySet.docSet.get(bestIndex));
+        myQuerySet.docSet.remove(bestIndex);
       }
     }
-    // TODO :: compute the rank of retrieved sentences
 
-    // TODO :: compute the metric:: mean reciprocal rank
+    // compute the metric:: mean reciprocal rank
     double metric_mrr = compute_mrr();
     System.out.println(" (MRR) Mean Reciprocal Rank ::" + metric_mrr);
   }
@@ -179,7 +188,26 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
   private double compute_mrr() {
     double metric_mrr = 0.0;
 
-    // TODO :: compute Mean Reciprocal Rank (MRR) of the text collection
+    // compute Mean Reciprocal Rank (MRR) of the text collection
+    metric_mrr = 0.0;
+
+    for (QuerySet myQuerySet : querySets) {
+      for (int i = 0; i < myQuerySet.ranking.size(); i++) {
+        Doc myDoc = myQuerySet.ranking.get(i);
+        // find correct answer
+        if (myDoc.relevanceValue == 1) {
+          // sum up mrr
+          metric_mrr += (1.0 / (double) (i+1));
+          // print score and ranking of correct answer to console
+          System.out.println("Score: " + myDoc.cosineSimilarity + " rank=" + (i+1) + " rel="
+                  + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " + myDoc.text);
+          break;
+        }
+      }
+    }
+
+    // average mrr
+    metric_mrr = (1.0 / (double) querySets.size()) * metric_mrr;
 
     return metric_mrr;
   }
@@ -203,8 +231,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     /** document word frequency vector **/
     public HashMap<String, Integer> f;
 
-    /** document tf-idf **/
-    public HashMap<String, Double> tfidf;
+    /** document cosine similarity with query **/
+    public double cosineSimilarity;
   }
 
   /**
@@ -220,6 +248,9 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
     /** Set of documents belonging to this query set **/
     public ArrayList<Doc> docSet;
+
+    /** Ranking of documents belonging to this query set, based on cosine similarity **/
+    public ArrayList<Doc> ranking;
 
     /** Query document for this query set **/
     public Doc query;
