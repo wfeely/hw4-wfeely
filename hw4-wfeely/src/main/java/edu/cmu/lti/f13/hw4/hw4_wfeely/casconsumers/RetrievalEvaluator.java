@@ -39,7 +39,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
   /** inverse-document-frequency vector **/
   HashMap<String, Double> idf;
-  
+
   public void initialize() throws ResourceInitializationException {
 
     qIdList = new ArrayList<Integer>();
@@ -53,7 +53,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     maxQID = 0;
 
     querySets = new ArrayList<QuerySet>();
-    
+
     idf = new HashMap<String, Double>();
   }
 
@@ -143,7 +143,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // add this query set to list of querySets
       querySets.add(myQuerySet);
     }
-    
+
     // calculate idf vector
     // get number of documents
     int D = docs.size();
@@ -159,7 +159,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
           }
         }
       }
-      double weight = Math.log((double) D / (double) (1+k));
+      double weight = Math.log((double) D / (double) (1 + k));
       idf.put(term, weight);
     }
 
@@ -185,6 +185,16 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
         myQuerySet.docSet.remove(bestIndex);
       }
     }
+
+    // DEBUG: print full rankings
+    /*
+     * for (QuerySet myQuerySet : querySets) { Doc query = myQuerySet.query;
+     * System.out.println("Query| rel=" + query.relevanceValue + " qid=" + query.queryID + " " +
+     * query.text); for (int i=0; i < myQuerySet.ranking.size(); i++) { Doc myDoc =
+     * myQuerySet.ranking.get(i); System.out.println("Document| Score: " + myDoc.cosineSimilarity +
+     * " rank=" + (i + 1) + " rel=" + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " +
+     * myDoc.text); } System.out.println(); } System.out.println("-------");
+     */
 
     // compute the metric:: mean reciprocal rank
     double metric_mrr = compute_mrr();
@@ -229,13 +239,13 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       if (queryVector.keySet().contains(term))
         weight = 0.5 + (0.5 * (double) queryVector.get(term) / maxFQuery);
       tfQuery.put(term, weight);
-      
+
       weight = 0.0;
       if (docVector.keySet().contains(term))
         weight = 0.5 + (0.5 * (double) docVector.get(term) / maxFDoc);
       tfDoc.put(term, weight);
     }
-    
+
     // calculate tf-idf vectors
     HashMap<String, Double> tfidfQuery = new HashMap<String, Double>();
     HashMap<String, Double> tfidfDoc = new HashMap<String, Double>();
@@ -247,29 +257,29 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       weight = (double) tfDoc.get(term) * (double) idf.get(term);
       tfidfDoc.put(term, weight);
     }
-    
+
     // calculate dot product of tf-idf vectors
     double dotProduct = 0.0;
-    for (String term : vocab.keySet()){
+    for (String term : vocab.keySet()) {
       dotProduct += tfidfQuery.get(term) * tfidfDoc.get(term);
     }
-    
+
     // calculate norms
     double queryNorm = 0.0;
     for (double w : tfidfQuery.values()) {
-      queryNorm += (w*w);
+      queryNorm += (w * w);
     }
     queryNorm = Math.sqrt(queryNorm);
-    
+
     double docNorm = 0.0;
     for (double w : tfidfDoc.values()) {
-      docNorm += (w*w);
+      docNorm += (w * w);
     }
     docNorm = Math.sqrt(docNorm);
-    
+
     // calculate cosine similarity
     cosine_similarity = dotProduct / (queryNorm * docNorm);
-    
+
     return cosine_similarity;
   }
 
