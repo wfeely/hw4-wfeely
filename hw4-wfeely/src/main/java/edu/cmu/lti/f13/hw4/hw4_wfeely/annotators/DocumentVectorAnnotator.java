@@ -4,17 +4,18 @@
 package edu.cmu.lti.f13.hw4.hw4_wfeely.annotators;
 
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.uima.analysis_component.JCasAnnotator_ImplBase;
 import org.apache.uima.analysis_engine.AnalysisEngineProcessException;
 import org.apache.uima.cas.FSIterator;
 import org.apache.uima.jcas.JCas;
-import org.apache.uima.jcas.cas.FSList;
-import org.apache.uima.jcas.cas.NonEmptyFSList;
 import org.apache.uima.jcas.tcas.Annotation;
 
 import edu.cmu.lti.f13.hw4.hw4_wfeely.typesystems.Document;
 import edu.cmu.lti.f13.hw4.hw4_wfeely.typesystems.Token;
+import edu.cmu.lti.f13.hw4.hw4_wfeely.utils.Utils;
 
 public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
@@ -39,82 +40,44 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
 
     String docText = doc.getText();
     // construct a vector of tokens and update the tokenList in CAS
-    // copy list elements into an arrayList
-    FSList list = doc.getTokenList();
     ArrayList<Token> aList = new ArrayList<Token>();
-    Token listTok = null;
-    int i = 0;
-    while (true) {
-      try {
-        listTok = (Token) list.getNthElement(i);
-      } catch (Exception e) {
-        // no more elements to process
-        break;
-      }
-      /*
-      System.out.println("Old tokenList contains: " + listTok.getText() + ","
-              + listTok.getFrequency());
-      */
-      aList.add(listTok);
-      i++;
-    }
-    // loop through token strings in document
-    for (String tokenText : docText.split(" ")) {
-      // set up new token
-      Token docTok = new Token(jcas);
-      docTok.setText(tokenText);
-      docTok.setFrequency(1);
-      //System.out.println("Got a new token: " + docTok.getText());
+    // search for tokens in each document
+    Pattern tokenPattern = Pattern.compile("[A-Za-z0-9']+");
+    int pos = 0;
+    Matcher matcher = tokenPattern.matcher(docText);
+    while (matcher.find(pos)) {
+      // found a token; create annotation
+      Token token = new Token(jcas);
+      token.setBegin(matcher.start());
+      token.setEnd(matcher.end());
+      token.setText(docText.substring(token.getBegin(), token.getEnd()).toLowerCase());
+      token.setFrequency(1);
+      // add token to indexes and iterate
+      token.addToIndexes();
+      pos = matcher.end();
       // loop through tokens in aList
       boolean match = false;
       for (Token aListTok : aList) {
         // compare document token with current token from arrayList aList
-        if (docTok.getText() == aListTok.getText()) {
-          // match; increment frequency of this type and set match to true
+        if (token.getText() == aListTok.getText()) {
+          // match; increment frequency of this type and set match to true, and break
           aListTok.setFrequency(aListTok.getFrequency() + 1);
           match = true;
-          /*System.out.println("Match: " + aListTok.getText() + ", updated freq: "
-                  + aListTok.getFrequency());
-                  */
+          break;
         }
       }
       // no match; add this new type to aList
-      if (!match) {
-        //System.out.println("No match, adding new token: " + docTok.getText());
-        aList.add(docTok);
-      }
+      if (!match)
+        aList.add(token);
     }
-    // DEBUG: Print all elements in aList
-    /*
-    for (Token t : aList) {
-      System.out.println("Arraylist contains: " + t.getText() + "," + t.getFrequency());
-    }
-    */
-    // reset FSList list, by copying arrayList aList back into it
-    NonEmptyFSList outList = new NonEmptyFSList(jcas);
-    outList.setHead(aList.get(aList.size() - 1));
-    outList.setTail(null);
-    for (int j = aList.size() - 2; j >= 0; j--) {
-      NonEmptyFSList tmpList = new NonEmptyFSList(jcas);
-      tmpList.setTail(outList);
-      tmpList.setHead(aList.get(j));
-      outList = tmpList;
-    }
-    doc.setTokenList((FSList) outList);
+    // convert array list of tokens into FSList, set tokenList as this new FSList
+    doc.setTokenList(Utils.fromCollectionToFSList(jcas, aList));
     // DEBUG: print all elements in tokenList
     /*
-    i = 0;
-    Token tok = null;
-    while (true) {
-      try {
-        tok = (Token) doc.getTokenList().getNthElement(i);
-      } catch (Exception e) {
-        // no more elements to process
-        break;
-      }
-      System.out.println("FSList contains: " + tok.getText() + "," + tok.getFrequency());
-      i++;
-    }
-    */
+     * int i = 0; Token tok = null; while (true) { try { tok = (Token)
+     * doc.getTokenList().getNthElement(i); } catch (Exception e) { // no more elements to process
+     * break; } System.out.println("FSList contains: " + tok.getText() + "," + tok.getFrequency());
+     * i++; }
+     */
   }
 }
