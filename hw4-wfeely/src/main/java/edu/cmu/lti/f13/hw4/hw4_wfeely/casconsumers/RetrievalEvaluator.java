@@ -37,6 +37,9 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
   /** query sets list **/
   public ArrayList<QuerySet> querySets;
 
+  /** inverse-document-frequency vector **/
+  HashMap<String, Double> idf;
+  
   public void initialize() throws ResourceInitializationException {
 
     qIdList = new ArrayList<Integer>();
@@ -50,6 +53,8 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     maxQID = 0;
 
     querySets = new ArrayList<QuerySet>();
+    
+    idf = new HashMap<String, Double>();
   }
 
   /**
@@ -138,6 +143,25 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // add this query set to list of querySets
       querySets.add(myQuerySet);
     }
+    
+    // calculate idf vector
+    // get number of documents
+    int D = docs.size();
+
+    for (String term : vocab.keySet()) {
+      // get total number of documents this term occurs in
+      int k = 0;
+      for (Doc d : docs) {
+        for (String t : d.f.keySet()) {
+          if (t == term) {
+            k++;
+            break;
+          }
+        }
+      }
+      double weight = Math.log((double) D / (double) (1+k));
+      idf.put(term, weight);
+    }
 
     // compute the cosine similarity measure
     for (QuerySet myQuerySet : querySets)
@@ -177,6 +201,75 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     double cosine_similarity = 0.0;
 
     // TODO :: compute cosine similarity between two sentences
+
+    // calculate tf vectors for query and document
+    HashMap<String, Double> tfQuery = new HashMap<String, Double>();
+    HashMap<String, Double> tfDoc = new HashMap<String, Double>();
+
+    // get maximum frequency terms in each document
+    double maxFQuery = 0.0;
+    double freqMaxBuffer = 0.0;
+    for (String term : queryVector.keySet()) {
+      if (queryVector.get(term) > freqMaxBuffer) {
+        freqMaxBuffer = queryVector.get(term);
+        maxFQuery = queryVector.get(term);
+      }
+    }
+    double maxFDoc = 0.0;
+    freqMaxBuffer = 0.0;
+    for (String term : docVector.keySet()) {
+      if (docVector.get(term) > freqMaxBuffer) {
+        freqMaxBuffer = docVector.get(term);
+        maxFDoc = docVector.get(term);
+      }
+    }
+
+    // fill in tf vectors
+    for (String term : vocab.keySet()) {
+      double weight = 0.0;
+      if (queryVector.keySet().contains(term))
+        weight = 0.5 + (0.5 * (double) queryVector.get(term) / maxFQuery);
+      tfQuery.put(term, weight);
+      
+      weight = 0.0;
+      if (docVector.keySet().contains(term))
+        weight = 0.5 + (0.5 * (double) docVector.get(term) / maxFDoc);
+      tfDoc.put(term, weight);
+    }
+    
+    // calculate tf-idf vectors
+    HashMap<String, Double> tfidfQuery = new HashMap<String, Double>();
+    HashMap<String, Double> tfidfDoc = new HashMap<String, Double>();
+
+    for (String term : vocab.keySet()) {
+      double weight = 0.0;
+      weight = (double) tfQuery.get(term) * (double) idf.get(term);
+      tfidfQuery.put(term, weight);
+      weight = (double) tfDoc.get(term) * (double) idf.get(term);
+      tfidfDoc.put(term, weight);
+    }
+    
+    // calculate dot product of tf-idf vectors
+    double dotProduct = 0.0;
+    for (String term : vocab.keySet()){
+      dotProduct += tfidfQuery.get(term) * tfidfDoc.get(term);
+    }
+    
+    // calculate norms
+    double queryNorm = 0.0;
+    for (double w : tfidfQuery.values()) {
+      queryNorm += (w*w);
+    }
+    queryNorm = Math.sqrt(queryNorm);
+    
+    double docNorm = 0.0;
+    for (double w : tfidfDoc.values()) {
+      docNorm += (w*w);
+    }
+    docNorm = Math.sqrt(docNorm);
+    
+    // calculate cosine similarity
+    cosine_similarity = dotProduct / (queryNorm * docNorm);
     
     return cosine_similarity;
   }
