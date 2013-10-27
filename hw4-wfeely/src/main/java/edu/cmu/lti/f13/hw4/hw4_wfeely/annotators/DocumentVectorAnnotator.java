@@ -65,6 +65,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
       token.setFrequency(1);
       // check token against stoplist
       if (stoplist.contains(token.getText())) {
+        // ignore tokens from stoplist
         pos = matcher.end();
         continue;
       }
