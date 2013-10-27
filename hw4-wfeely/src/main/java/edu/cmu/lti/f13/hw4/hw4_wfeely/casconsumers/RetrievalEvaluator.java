@@ -1,3 +1,6 @@
+/** RetrievalEvaluator.java
+ * @author Weston Feely
+ */
 package edu.cmu.lti.f13.hw4.hw4_wfeely.casconsumers;
 
 import java.io.IOException;
@@ -152,15 +155,11 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // get total number of documents this term occurs in
       int k = 0;
       for (Doc d : docs) {
-        for (String t : d.f.keySet()) {
-          if (t == term) {
-            k++;
-            break;
-          }
-        }
+        if (d.f.keySet().contains(term))
+          k++;
       }
       // calculate idf weight and put into idf vector
-      double weight = Math.log((double) D / (double) (1 + k));
+      double weight = Math.log((double) D / (double) k);
       idf.put(term, weight);
     }
 
@@ -168,8 +167,11 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     for (QuerySet myQuerySet : querySets)
       for (Doc result : myQuerySet.docSet) {
         // DEBUG: print query and document text
-        System.out.println("Query: " + myQuerySet.query.text);
-        System.out.println("Doc: " + result.text);
+        /*
+         * System.out.println("Query: " + myQuerySet.query.text); System.out.println("Doc: " +
+         * result.text);
+         */
+        // compute cosine similarity
         result.cosineSimilarity = computeCosineSimilarity(myQuerySet.query.f, result.f);
       }
 
@@ -192,18 +194,14 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     }
 
     // DEBUG: print full rankings
-    for (QuerySet myQuerySet : querySets) {
-      Doc query = myQuerySet.query;
-      System.out.println("Query| rel=" + query.relevanceValue + " qid=" + query.queryID + " "
-              + query.text);
-      for (int i = 0; i < myQuerySet.ranking.size(); i++) {
-        Doc myDoc = myQuerySet.ranking.get(i);
-        System.out.println("Document| Score: " + myDoc.cosineSimilarity + " rank=" + (i + 1)
-                + " rel=" + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " + myDoc.text);
-      }
-      System.out.println();
-    }
-    System.out.println("-------");
+    /*
+     * for (QuerySet myQuerySet : querySets) { Doc query = myQuerySet.query;
+     * System.out.println("Query| rel=" + query.relevanceValue + " qid=" + query.queryID + " " +
+     * query.text); for (int i = 0; i < myQuerySet.ranking.size(); i++) { Doc myDoc =
+     * myQuerySet.ranking.get(i); System.out.println("Document| Score: " + myDoc.cosineSimilarity +
+     * " rank=" + (i + 1) + " rel=" + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " +
+     * myDoc.text); } System.out.println(); } System.out.println("-------");
+     */
 
     // compute the metric:: mean reciprocal rank
     double metric_mrr = compute_mrr();
@@ -275,10 +273,15 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // multiply tf by idf for this term, put into tfidf vector
       weight = tfDoc.get(term) * idf.get(term);
       tfidfDoc.put(term, weight);
-      //DEBUG: print tf-idf vectors for term in query and doc
-      System.out.print("Term: " + term);
-      System.out.print(", Query tf-idf: " + tfidfQuery.get(term));
-      System.out.println(", Doc tf-idf: " + tfidfDoc.get(term));
+      // DEBUG: print tf, idf, and tf-idf vectors for term in query and doc
+      /*
+       * System.out.print("Term: " + term); System.out.print(", fQuery:" + queryVector.get(term));
+       * System.out.print(", tfQuery:" + tfQuery.get(term)); System.out.print(", idf:" +
+       * idf.get(term)); System.out.print(", tfidfQuery: " + tfidfQuery.get(term));
+       * System.out.print(", fDoc:" + docVector.get(term)); System.out.print(", tfDoc:" +
+       * tfDoc.get(term)); System.out.print(", idf:" + idf.get(term));
+       * System.out.println(", Doc tf-idf: " + tfidfDoc.get(term));
+       */
     }
 
     // calculate dot product of tf-idf vectors
@@ -286,7 +289,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     for (String term : vocab.keySet()) {
       dotProduct += tfidfQuery.get(term) * tfidfDoc.get(term);
     }
-    
+
     // calculate norms
     double queryNorm = 0.0;
     for (double w : tfidfQuery.values()) {

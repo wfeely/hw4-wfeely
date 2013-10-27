@@ -61,7 +61,8 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
       Token token = new Token(jcas);
       token.setBegin(matcher.start());
       token.setEnd(matcher.end());
-      token.setText(docText.substring(token.getBegin(), token.getEnd()).toLowerCase());
+      int end = token.getEnd() - 1;
+      token.setText(docText.substring(token.getBegin(), end).toLowerCase());
       token.setFrequency(1);
       // check token against stoplist
       if (stoplist.contains(token.getText())) {
@@ -75,7 +76,7 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
       boolean match = false;
       for (Token aListTok : aList) {
         // compare document token with current token from arrayList aList
-        if (token.getText() == aListTok.getText()) {
+        if (token.getText().equals(aListTok.getText())) {
           // match; increment frequency of this type and set match to true, and break
           aListTok.setFrequency(aListTok.getFrequency() + 1);
           match = true;
@@ -90,10 +91,9 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
     doc.setTokenList(Utils.fromCollectionToFSList(jcas, aList));
     // DEBUG: print all elements in tokenList
     /*
-     * int i = 0; Token tok = null; while (true) { try { tok = (Token)
-     * doc.getTokenList().getNthElement(i); } catch (Exception e) { // no more elements to process
-     * break; } System.out.println("FSList contains: " + tok.getText() + "," + tok.getFrequency());
-     * i++; }
+     * System.out.println("Doc: " + doc.getText()); for (Token t :
+     * Utils.fromFSListToCollection(doc.getTokenList(), Token.class))
+     * System.out.println("TokenList contains: " + t.getText() + "," + t.getFrequency());
      */
   }
 }
