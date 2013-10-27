@@ -61,13 +61,16 @@ public class DocumentVectorAnnotator extends JCasAnnotator_ImplBase {
       Token token = new Token(jcas);
       token.setBegin(matcher.start());
       token.setEnd(matcher.end());
-      int end = token.getEnd() - 1;
-      token.setText(docText.substring(token.getBegin(), end).toLowerCase());
+      token.setText(docText.substring(token.getBegin(), token.getEnd()).toLowerCase());
       token.setFrequency(1);
       // check token against stoplist
       if (stoplist.contains(token.getText())) {
         pos = matcher.end();
         continue;
+      }
+      // improvement: consider all short words (3 characters or fewer) to be the same word
+      if ((token.getEnd() - token.getBegin()) <= 3) {
+        token.setText("SHORT");
       }
       // add token to indexes and iterate
       token.addToIndexes();
