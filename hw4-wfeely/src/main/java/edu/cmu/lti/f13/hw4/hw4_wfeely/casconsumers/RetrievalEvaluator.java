@@ -159,14 +159,19 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
           }
         }
       }
+      // calculate idf weight and put into idf vector
       double weight = Math.log((double) D / (double) (1 + k));
       idf.put(term, weight);
     }
 
     // compute the cosine similarity measure
     for (QuerySet myQuerySet : querySets)
-      for (Doc result : myQuerySet.docSet)
+      for (Doc result : myQuerySet.docSet) {
+        // DEBUG: print query and document text
+        System.out.println("Query: " + myQuerySet.query.text);
+        System.out.println("Doc: " + result.text);
         result.cosineSimilarity = computeCosineSimilarity(myQuerySet.query.f, result.f);
+      }
 
     // compute the rank of retrieved sentences
     for (QuerySet myQuerySet : querySets) {
@@ -187,14 +192,18 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     }
 
     // DEBUG: print full rankings
-    /*
-     * for (QuerySet myQuerySet : querySets) { Doc query = myQuerySet.query;
-     * System.out.println("Query| rel=" + query.relevanceValue + " qid=" + query.queryID + " " +
-     * query.text); for (int i=0; i < myQuerySet.ranking.size(); i++) { Doc myDoc =
-     * myQuerySet.ranking.get(i); System.out.println("Document| Score: " + myDoc.cosineSimilarity +
-     * " rank=" + (i + 1) + " rel=" + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " +
-     * myDoc.text); } System.out.println(); } System.out.println("-------");
-     */
+    for (QuerySet myQuerySet : querySets) {
+      Doc query = myQuerySet.query;
+      System.out.println("Query| rel=" + query.relevanceValue + " qid=" + query.queryID + " "
+              + query.text);
+      for (int i = 0; i < myQuerySet.ranking.size(); i++) {
+        Doc myDoc = myQuerySet.ranking.get(i);
+        System.out.println("Document| Score: " + myDoc.cosineSimilarity + " rank=" + (i + 1)
+                + " rel=" + myDoc.relevanceValue + " qid=" + myDoc.queryID + " " + myDoc.text);
+      }
+      System.out.println();
+    }
+    System.out.println("-------");
 
     // compute the metric:: mean reciprocal rank
     double metric_mrr = compute_mrr();
@@ -236,13 +245,21 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     // fill in tf vectors
     for (String term : vocab.keySet()) {
       double weight = 0.0;
+      int freq = 0;
+      // check if this term is in the queryVector
       if (queryVector.keySet().contains(term))
-        weight = 0.5 + (0.5 * (double) queryVector.get(term) / maxFQuery);
+        freq = queryVector.get(term);
+      // calculate tf weight and put into tf vector
+      weight = 0.5 + ((0.5 * (double) freq) / maxFQuery);
       tfQuery.put(term, weight);
 
       weight = 0.0;
+      freq = 0;
+      // check if this term is in the docVector
       if (docVector.keySet().contains(term))
-        weight = 0.5 + (0.5 * (double) docVector.get(term) / maxFDoc);
+        freq = docVector.get(term);
+      // calculate tf weight and put into tf vector
+      weight = 0.5 + ((0.5 * (double) freq) / maxFDoc);
       tfDoc.put(term, weight);
     }
 
@@ -252,10 +269,16 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
 
     for (String term : vocab.keySet()) {
       double weight = 0.0;
-      weight = (double) tfQuery.get(term) * (double) idf.get(term);
+      // multiply tf by idf for this term, put into tfidf vector
+      weight = tfQuery.get(term) * idf.get(term);
       tfidfQuery.put(term, weight);
-      weight = (double) tfDoc.get(term) * (double) idf.get(term);
+      // multiply tf by idf for this term, put into tfidf vector
+      weight = tfDoc.get(term) * idf.get(term);
       tfidfDoc.put(term, weight);
+      //DEBUG: print tf-idf vectors for term in query and doc
+      System.out.print("Term: " + term);
+      System.out.print(", Query tf-idf: " + tfidfQuery.get(term));
+      System.out.println(", Doc tf-idf: " + tfidfDoc.get(term));
     }
 
     // calculate dot product of tf-idf vectors
@@ -263,7 +286,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
     for (String term : vocab.keySet()) {
       dotProduct += tfidfQuery.get(term) * tfidfDoc.get(term);
     }
-
+    
     // calculate norms
     double queryNorm = 0.0;
     for (double w : tfidfQuery.values()) {
