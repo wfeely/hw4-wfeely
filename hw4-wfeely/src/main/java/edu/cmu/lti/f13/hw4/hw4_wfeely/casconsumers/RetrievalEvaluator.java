@@ -159,7 +159,7 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
           k++;
       }
       // calculate idf weight and put into idf vector
-      double weight = Math.log((double) D / (double) k);
+      double weight = Math.log((double) D / (double) (1 + k));
       idf.put(term, weight);
     }
 
