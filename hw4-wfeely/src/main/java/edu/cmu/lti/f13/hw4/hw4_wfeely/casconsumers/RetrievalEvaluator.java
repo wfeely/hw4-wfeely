@@ -247,8 +247,17 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // check if this term is in the queryVector
       if (queryVector.keySet().contains(term))
         freq = queryVector.get(term);
-      // calculate tf weight and put into tf vector
-      weight = 0.5 + ((0.5 * (double) freq) / maxFQuery);
+      // calculate tf weights (by different strategies)
+      // strategy 1: boolean "frequency"
+      if (freq > 0)
+        weight = 1.0;
+      // strategy 2: raw frequency
+      // weight = (double) freq;
+      // strategy 3: logscale frequency
+      // weight = Math.log(freq+1);
+      // strategy 4: augmented frequency
+      // weight = 0.5 + ((0.5 * (double) freq) / maxFQuery);
+      // put tf weight into vector
       tfQuery.put(term, weight);
 
       weight = 0.0;
@@ -256,8 +265,17 @@ public class RetrievalEvaluator extends CasConsumer_ImplBase {
       // check if this term is in the docVector
       if (docVector.keySet().contains(term))
         freq = docVector.get(term);
-      // calculate tf weight and put into tf vector
-      weight = 0.5 + ((0.5 * (double) freq) / maxFDoc);
+      // calculate tf weights (by different strategies)
+      // strategy 1: boolean "frequency"
+      if (freq > 0)
+        weight = 1.0;
+      // strategy 2: raw frequency
+      // weight = (double) freq;
+      // strategy 3: logscale frequency
+      // weight = Math.log(freq+1);
+      // strategy 4: augmented frequency
+      // weight = 0.5 + ((0.5 * (double) freq) / maxFDoc);
+      // put tf weight into vector
       tfDoc.put(term, weight);
     }
 
